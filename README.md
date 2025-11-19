@@ -54,73 +54,94 @@ The sequence detector should produce an output `Z = 1` whenever the input sequen
 
 ## **Program**
 
-```verilog
-// Sequence Detector for "1011" using Moore Machine
-module moore_seq_detector(
-    input clk, reset, x,
-    output reg z
+```
+`timescale 1ns/1ps
+
+module moore_statemachine (
+    input clk,
+    input reset,
+    input in,
+    output reg out
 );
-    // State encoding
-    parameter S0 = 3'b000,
-              S1 = 3'b001,
-              S2 = 3'b010,
-              S3 = 3'b011,
-              S4 = 3'b100;
+    parameter S0 = 3'b000;
+    parameter S1 = 3'b001;
+    parameter S2 = 3'b010;
+    parameter S3 = 3'b011;
+    parameter S4 = 3'b100;
 
-    reg [2:0] state, next_state;
+    reg [2:0] current_state, next_state;
 
-    // State transition logic
-  
+    always @(posedge clk or posedge reset) begin
+        if (reset)
+            current_state <= S0;
+        else
+            current_state <= next_state;
+    end
+
+    always @(*) begin
+        case (current_state)
+            S0: next_state = (in) ? S1 : S0;
+            S1: next_state = (in) ? S1 : S2;
+            S2: next_state = (in) ? S3 : S0;
+            S3: next_state = (in) ? S4 : S2;
+            S4: next_state = (in) ? S1 : S2;
+            default: next_state = S0;
+        endcase
+    end
+
+    always @(*) begin
+        case (current_state)
+            S4: out = 1'b1;
+            default: out = 1'b0;
         endcase
     end
 endmodule
+
 ```
 ### Testbench
 ```
-module tb_moore_seq_detector;
-    reg clk, reset, x;
-    wire z;
+`timescale 1ns/1ps
 
-    moore_seq_detector uut(clk, reset, x, z);
+module tb_moore_statemachine;
+    reg clk, reset, in;
+    wire out;
 
-    // Clock generation
+    moore_statemachine dut(clk, reset, in, out);
+
     always #5 clk = ~clk;
 
     initial begin
         clk = 0;
         reset = 1;
-        x = 0;
+        in = 0;
         #10 reset = 0;
 
-        // Input sequence: 1 0 1 1 0 1 0 1 1
-        x = 1; #10;
-        x = 0; #10;
-        x = 1; #10;
-        x = 1; #10;
-        x = 0; #10;
-        x = 1; #10;
-        x = 0; #10;
-        x = 1; #10;
-        x = 1; #10;
-        #10 $finish;
+        in = 1; #10;
+        in = 0; #10;
+        in = 1; #10;
+        in = 1; #10;
+        in = 0; #10;
+        in = 1; #10;
+        in = 0; #10;
+        in = 1; #10;
+        in = 1; #10;
+
+        #20 $finish;
     end
 
     initial begin
-        $monitor("Time=%0t | X=%b | Z=%b | State=%b", $time, x, z, uut.state);
+        $monitor("Time=%0t | In=%b | Out=%b | State=%b", $time, in, out, dut.current_state);
     end
 endmodule
+
 ```
 ### Simulation Output
--
--
--
--
--
--
-Paste the output here
--
--
--
+<img width="1917" height="1198" alt="image" src="https://github.com/user-attachments/assets/df1fe448-bce9-4f17-8442-1c9876434ccc" />
+
+
+
+
+
 
 ### Result
 
